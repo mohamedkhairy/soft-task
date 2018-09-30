@@ -35,18 +35,19 @@ public class UserScanFragment extends Fragment {
     @BindView(R.id.scan)
     Button btnScan;
     @BindView(R.id.listviewip)
-     ListView listViewIp;
+    ListView listViewIp;
     @BindView(R.id.progress)
     ProgressBar progressBar;
 
     ArrayList<String> ipList;
     ArrayAdapter<String> adapter;
+    private ScanIpTask scanIpTask;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view =  inflater.inflate(R.layout.user_scaner_frg, container, false);
-        ButterKnife.bind(this , view);
+        View view = inflater.inflate(R.layout.user_scaner_frg, container, false);
+        ButterKnife.bind(this, view);
         return view;
     }
 
@@ -54,7 +55,7 @@ public class UserScanFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-
+        scanIpTask = new ScanIpTask(getIpAdress());
         ipList = new ArrayList();
         adapter = new ArrayAdapter<String>(getActivity(),
                 android.R.layout.simple_list_item_1,
@@ -65,31 +66,42 @@ public class UserScanFragment extends Fragment {
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new ScanIpTask(getIpAdress()).execute();
+
+                scanIpTask.execute();
             }
         });
 
+
     }
 
-    public String getIpAdress(){
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (scanIpTask.getStatus().toString().equals("RUNNING")) {
+            scanIpTask.cancel(true);
+        }
+
+
+    }
+
+    public String getIpAdress() {
         WifiManager wm = (WifiManager) getContext().getApplicationContext().getSystemService(WIFI_SERVICE);
         String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-        Log.d("xoxo" , ip);
-        for (int i = ip.length()-1 ; ip.length() >= i ; i--){
+        for (int i = ip.length() - 1; ip.length() >= i; i--) {
 
-            if (ip.charAt(i) == '.'){
-                ip = ip.substring(0,i)+".";
+            if (ip.charAt(i) == '.') {
+                ip = ip.substring(0, i) + ".";
                 break;
             }
         }
-        Log.d("xoxo" , ip);
+
         return ip;
     }
 
     private class ScanIpTask extends AsyncTask<Void, String, Void> {
 
 
-        private String subnet ;
+        private String subnet;
         static final int lower = 1;
         static final int upper = 250;
         static final int timeout = 1000;
@@ -116,7 +128,7 @@ public class UserScanFragment extends Fragment {
                 try {
 
                     InetAddress inetAddress = InetAddress.getByName(host);
-                    if (inetAddress.isReachable(timeout)){
+                    if (inetAddress.isReachable(timeout)) {
                         publishProgress(inetAddress.toString());
                     }
 

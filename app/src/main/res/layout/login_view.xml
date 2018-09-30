@@ -64,7 +64,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="25dp"
             android:text="Log In"
-            android:textColor="#fff" />
+            android:background="#f9a825" />
 
 
     </LinearLayout>

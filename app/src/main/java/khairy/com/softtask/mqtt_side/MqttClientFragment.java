@@ -2,18 +2,23 @@ package khairy.com.softtask.mqtt_side;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -30,9 +35,11 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import khairy.com.softtask.R;
 import khairy.com.softtask.SecondView;
 import khairy.com.softtask.connection.ConnectInterface;
+import khairy.com.softtask.fragments.UserScanFragment;
 import khairy.com.softtask.json.SSIDvalue;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -42,11 +49,14 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MqttClientFragment extends Fragment {
 
+    public static final String BACK_STACK_TAG = "mqtt_fragment";
     private final String URL = "http://ronixtech.com/ronix_services/";
     private static Retrofit retrofit;
     private SSIDvalue ssiDvalue;
     private MqttHelper mqttHelper;
     private WifiManager wifiManager;
+    private ArrayList<String> wifiArray;
+    private ArrayAdapter<String> adapter;
 
     @BindView(R.id.ssid)
     TextView ssidTxt;
@@ -54,37 +64,49 @@ public class MqttClientFragment extends Fragment {
     TextView passtxt;
     @BindView(R.id.searchtxt)
     TextView searchTxt;
-    @BindView(R.id.linearSearch)
-    LinearLayout linearSearch;
-
+    @BindView(R.id.progress2)
+    ProgressBar progressBar;
     @BindView(R.id.wifilist)
     ListView wifilist;
+    @BindView(R.id.users)
+    Button button;
 
-
-    ArrayList<String> wifiArray;
-    ArrayAdapter<String> adapter;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view =  inflater.inflate(R.layout.mqtt_frg_view, container, false);
-        ButterKnife.bind(this , view);
-        linearSearch.setVisibility(View.VISIBLE);
+        View view = inflater.inflate(R.layout.mqtt_frg_view, container, false);
+        ButterKnife.bind(this, view);
+
         return view;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        wifiArray = new ArrayList();
-        adapter = new ArrayAdapter<String>(getActivity(),
-                android.R.layout.simple_list_item_1,
-                android.R.id.text1, wifiArray);
-        wifilist.setAdapter(adapter);
-
-        getData();
+        if (isNetworkConnected()) {
+            progressBar.setVisibility(View.VISIBLE);
+            wifiArray = new ArrayList();
+            adapter = new ArrayAdapter<String>(getActivity(),
+                    android.R.layout.simple_list_item_1,
+                    android.R.id.text1, wifiArray);
+            wifilist.setAdapter(adapter);
+            getData();
+        } else {
+            passtxt.setText("NO CONNECTION");
+            button.setVisibility(View.GONE);
+        }
     }
 
-    public void getData(){
+    private boolean isNetworkConnected() {
+        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm.getActiveNetworkInfo() != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void getData() {
         retrofit = new retrofit2.Retrofit.Builder()
                 .baseUrl(URL)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -99,20 +121,19 @@ public class MqttClientFragment extends Fragment {
                 ssiDvalue = response.body();
                 ssidTxt.setText("SSID : " + ssiDvalue.getSSID());
                 searchTxt.setText("Searching for " + ssiDvalue.getSSID());
-                startMqtt();
-                Log.d("ssid" , ssiDvalue.getSSID());
+                startMqttConnection();
             }
 
             @Override
             public void onFailure(Call<SSIDvalue> call, Throwable t) {
-                Toast.makeText(getActivity() , t.getLocalizedMessage() , Toast.LENGTH_LONG).show();
-                Log.d("MAIN" , t.getMessage() + "\n" + t.getLocalizedMessage());
+                Toast.makeText(getActivity(), t.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                Log.d("MAIN", t.getMessage() + "\n" + t.getLocalizedMessage());
                 t.getStackTrace();
             }
         });
     }
 
-    private void startMqtt(){
+    private void startMqttConnection() {
         mqttHelper = new MqttHelper(getActivity().getApplicationContext());
         mqttHelper.setCallback(new MqttCallbackExtended() {
             @Override
@@ -127,14 +148,14 @@ public class MqttClientFragment extends Fragment {
 
             @Override
             public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
-                Log.w("Debug",mqttMessage.toString());
+                Log.w("Debug", mqttMessage.toString());
 
 
                 JSONObject object = new JSONObject(mqttMessage.toString());
                 String pass = object.getString("PASS");
-                if (pass != null){
+                if (pass != null) {
                     passtxt.setText("PASS : " + pass);
-                    scan();
+                    scan(pass);
                 }
 
             }
@@ -146,42 +167,53 @@ public class MqttClientFragment extends Fragment {
         });
     }
 
-    private void  scan(){
+    private void scan(String pass) {
 
+        wifiArray.clear();
+        progressBar.setVisibility(View.VISIBLE);
         wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        WifiInfo info = wifiManager.getConnectionInfo();
+
         boolean success = wifiManager.startScan();
 
         if (success) {
             List<ScanResult> results = wifiManager.getScanResults();
 
-            WifiConfiguration wifiConfig = new WifiConfiguration();
-            wifiConfig.SSID = String.format("\"%s\"", "5hairi-Disk");
-            wifiConfig.preSharedKey = String.format("\"%s\"", "khairy666");
 
-
-//            int netId = wifiManager.addNetwork(wifiConfig);
-//            wifiManager.disconnect();
-//            wifiManager.enableNetwork(netId, true);
-//            wifiManager.reconnect();
-
-            if(wifiConfig.SSID.equals("5hairi-Disk")){
-                Log.d("wifiii" , wifiConfig.SSID + " greeeeeeeeen");
-
-                ((TextView)wifilist.getChildAt(0)).setTextColor(Color.GREEN);
-            }
-
-            for (ScanResult scanResult : results){
-                Log.d("wifiii" , scanResult.SSID);
+            for (ScanResult scanResult : results) {
                 wifiArray.add(scanResult.SSID);
                 adapter.notifyDataSetInvalidated();
             }
 
-            linearSearch.setVisibility(View.GONE);
+            String wifi_ssid = "\"" + ssiDvalue.getSSID() + "\"";
+
+
+            if (!info.getSSID().equals(wifi_ssid)) {
+
+                WifiConfiguration wifiConfig = new WifiConfiguration();
+                wifiConfig.SSID = String.format("\"%s\"", ssiDvalue.getSSID());
+                wifiConfig.preSharedKey = String.format("\"%s\"", pass);
+                int netId = wifiManager.addNetwork(wifiConfig);
+                wifiManager.disconnect();
+                wifiManager.enableNetwork(netId, true);
+                wifiManager.reconnect();
+            }
+
+            progressBar.setVisibility(View.GONE);
+            searchTxt.setText("AVAILABLE WIFI");
+
 
         } else {
-            Log.d("wifiii" , "noooooooooooo");
-
+            Toast.makeText(getActivity(), "Failed to scan", Toast.LENGTH_LONG).show();
         }
+    }
+
+    @OnClick(R.id.users)
+    public void networkScaner() {
+        FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.placeholder, new UserScanFragment(), UserScanFragment.class.getSimpleName());
+        fragmentTransaction.addToBackStack(BACK_STACK_TAG).commit();
     }
 
 }

@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 public class DBHelper extends SQLiteOpenHelper {
 
-    public static final String TAG = DBHelper.class.getSimpleName();
+
     public static final String DB_NAME = "singin.db";
 
     public static final String USER_TABLE = "users";
@@ -28,7 +28,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
         sqLiteDatabase.execSQL(" CREATE TABLE " + USER_TABLE +
                 "(" + COLUMN_NAME + " TEXT, " + COLUMN_USERNAME + " TEXT, " +
-                COLUMN_PASSWORD + " TEXT, " + COLUMN_CNFRMPASS + " TEXT " +")");
+                COLUMN_PASSWORD + " TEXT, " + COLUMN_CNFRMPASS + " TEXT " + ")");
 
     }
 
@@ -51,7 +51,7 @@ public class DBHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    public Cursor getData(){
+    public Cursor getData() {
         SQLiteDatabase db = this.getWritableDatabase();
         return db.rawQuery("SELECT * FROM " + USER_TABLE, null);
     }

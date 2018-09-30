@@ -44,8 +44,8 @@ public class LoginFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view =  inflater.inflate(R.layout.login_view, container, false);
-        ButterKnife.bind(this , view);
+        View view = inflater.inflate(R.layout.login_view, container, false);
+        ButterKnife.bind(this, view);
         return view;
     }
 
@@ -58,14 +58,13 @@ public class LoginFragment extends Fragment {
     }
 
     @OnClick(R.id.login)
-    public void login(){
+    public void login() {
 
-        if(username1.getText().toString().equals("")||
-                pass.getText().toString().equals(""))
-        {
+        if (username1.getText().toString().equals("") ||
+                pass.getText().toString().equals("")) {
             Toast.makeText(getActivity(), "Username and Password can't be empty", Toast.LENGTH_LONG).show();
             return;
-        }else{
+        } else {
             cursor = db.rawQuery("SELECT * FROM " + DBHelper.USER_TABLE + " WHERE "
                             + DBHelper.COLUMN_USERNAME + " =? AND " + DBHelper.COLUMN_PASSWORD + " =?",
                     new String[]{username1.getText().toString(), pass.getText().toString()});
@@ -77,7 +76,7 @@ public class LoginFragment extends Fragment {
 
                 Toast.makeText(getActivity(), "Logged In succesfully!",
                         Toast.LENGTH_LONG).show();
-                Intent intent = new Intent(getActivity() , SecondView.class);
+                Intent intent = new Intent(getActivity(), SecondView.class);
                 startActivity(intent);
             } else {
                 Toast.makeText(getActivity(), "Invalid username or password!",
@@ -87,19 +86,20 @@ public class LoginFragment extends Fragment {
         }
 
     }
+
     @OnClick(R.id.regis)
-    public void userSignup(){
+    public void userSignup() {
         FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.container, new SignupFragment(), SignupFragment.class.getSimpleName());
         fragmentTransaction.addToBackStack(BACK_STACK_ROOT_TAG).commit();
     }
 
-    public void showPass(){
+    public void showPass() {
         show.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
+                if (isChecked) {
                     pass.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
                 } else {
                     pass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);

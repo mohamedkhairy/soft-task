@@ -23,25 +23,26 @@
 
 
     <Button
-        android:id="@+id/scan"
+        android:id="@+id/users"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
         android:layout_marginBottom="5dp"
-        android:text="Scan"/>
+        android:text="Network Users"
+        android:background="#f9a825"/>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/linearSearch"
         android:layout_gravity="center_horizontal"
-        android:visibility="gone"
         android:orientation="horizontal">
     <ProgressBar
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
-        android:id="@+id/progress"
+        android:id="@+id/progress2"
+        android:visibility="gone"
         android:layout_margin="5dp" />
         <TextView
             android:layout_width="match_parent"
